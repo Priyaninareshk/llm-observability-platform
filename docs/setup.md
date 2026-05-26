@@ -25,6 +25,7 @@
 2. Verify services:
    - Backend: `http://localhost:8000`
    - Prometheus: `http://localhost:9090`
+   - Grafana: `http://localhost:3000` (admin/admin)
 
 ## Environment Variables
 

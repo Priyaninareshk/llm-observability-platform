@@ -1,5 +1,6 @@
 import logging
 from collections import deque
+from collections import defaultdict
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from math import floor
@@ -38,6 +39,7 @@ class LatencyTracker(LatencyTrackerPort):
         self._metrics = metrics
         self._warning_threshold_ms = settings.latency_warning_threshold_ms
         self._rolling = deque(maxlen=rolling_window_size)
+        self._rolling_by_key: dict[tuple[str, str], deque[float]] = defaultdict(lambda: deque(maxlen=rolling_window_size))
 
     def track(self, operation: str, duration_ms: float) -> None:
         self.track_stage(operation=operation, duration_ms=duration_ms, trace_id="", endpoint="")
@@ -52,10 +54,12 @@ class LatencyTracker(LatencyTrackerPort):
             timestamp=datetime.now(timezone.utc).isoformat(),
         )
         self._rolling.append(duration_ms)
+        key = (operation, endpoint or "unknown")
+        self._rolling_by_key[key].append(duration_ms)
 
         self._metrics.observe("request_latency_ms", duration_ms, labels={"operation": operation, "endpoint": endpoint or "unknown"})
         labels = {"operation": operation, "endpoint": endpoint or "unknown"}
-        values = list(self._rolling)
+        values = list(self._rolling_by_key[key])
         avg = sum(values) / len(values) if values else duration_ms
         p50 = self._percentile(values, 50)
         p95 = self._percentile(values, 95)

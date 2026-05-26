@@ -40,3 +40,32 @@ class ChatResponse(BaseModel):
     token_usage: TokenUsagePayload
     cost: CostPayload
     trace_id: str
+
+
+class CostRecordPayload(BaseModel):
+    timestamp: str
+    trace_id: str
+    request_id: str
+    model_name: str
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
+    prompt_cost: float
+    completion_cost: float
+    total_cost: float
+    pricing_found: bool
+
+
+class CostReportPayload(BaseModel):
+    total_requests: int
+    total_cost_usd: float
+    avg_cost_per_request_usd: float
+    alert_threshold_usd: float
+    by_model: dict[str, dict[str, float | int]]
+    recent_records: list[CostRecordPayload]
+
+
+class LangSmithStatusPayload(BaseModel):
+    enabled: bool
+    api_key_configured: bool
+    project: str

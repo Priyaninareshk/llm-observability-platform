@@ -1,0 +1,44 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "graphTooltip": 0,
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "API Request Rate",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [{"refId": "A", "expr": "sum(rate(api_request_count_total[5m]))"}]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "API Error Rate",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [{"refId": "A", "expr": "sum(rate(api_error_count_total[5m]))"}]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Total Cost (USD)",
+      "gridPos": {"h": 7, "w": 12, "x": 0, "y": 8},
+      "targets": [{"refId": "A", "expr": "sum(total_cost_usd_sum)"}]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "P95 /chat Middleware Latency (ms)",
+      "gridPos": {"h": 7, "w": 12, "x": 12, "y": 8},
+      "targets": [{"refId": "A", "expr": "max(p95_latency{operation=\"middleware_latency\",endpoint=\"/chat\"})"}]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["llm", "observability"],
+  "templating": {"list": []},
+  "time": {"from": "now-15m", "to": "now"},
+  "timezone": "browser",
+  "title": "LLM Observability Overview",
+  "uid": "llm-observability-overview",
+  "version": 1
+}

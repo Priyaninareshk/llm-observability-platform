@@ -27,6 +27,24 @@ def test_metrics_endpoint() -> None:
     assert "python_info" in text
 
 
+def test_cost_report_endpoint() -> None:
+    client.post("/chat", json={"prompt": "Cost report seed"})
+    response = client.get("/reports/cost")
+    assert response.status_code == 200
+    payload = response.json()
+    assert "total_requests" in payload
+    assert "total_cost_usd" in payload
+    assert "by_model" in payload
+    assert "recent_records" in payload
+
+
+def test_langsmith_status_endpoint() -> None:
+    response = client.get("/observability/langsmith")
+    assert response.status_code == 200
+    payload = response.json()
+    assert set(payload.keys()) == {"enabled", "api_key_configured", "project"}
+
+
 def test_chat_response_shape() -> None:
     response = client.post("/chat", json={"prompt": "Hello"})
     assert response.status_code == 200

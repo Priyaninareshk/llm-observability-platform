@@ -33,6 +33,8 @@ uvicorn main:app --reload --app-dir backend
 - `GET /`
 - `GET /health`
 - `GET /metrics`
+- `GET /reports/cost`
+- `GET /observability/langsmith`
 - `POST /chat`
 
 ## Observability Variables

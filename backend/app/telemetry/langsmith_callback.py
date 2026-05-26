@@ -66,6 +66,7 @@ class LangSmithObservabilityCallback(BaseCallbackHandler):
             },
         )
         self._metrics.increment("llm_request_count", labels={"model": model_name})
+        self._metrics.increment("langsmith_callback_start_count")
 
     def on_llm_end(self, response, *, run_id, **kwargs: Any) -> None:
         callback_started_at = time.perf_counter()
@@ -95,6 +96,7 @@ class LangSmithObservabilityCallback(BaseCallbackHandler):
         self._latency_tracker.track("llm_inference", llm_latency_ms)
         self._metrics.observe("llm_latency_ms", llm_latency_ms, labels={"model": model_name})
         self._metrics.increment("llm_token_usage_total", token_usage.total_tokens, labels={"model": model_name})
+        self._metrics.increment("langsmith_callback_success_count")
 
         cost = self._cost_tracker.calculate_and_track(token_usage)
         self._latest_cost = cost
@@ -148,6 +150,7 @@ class LangSmithObservabilityCallback(BaseCallbackHandler):
             },
         )
         self._metrics.increment("llm_error_count", labels={"error_type": type(error).__name__})
+        self._metrics.increment("langsmith_callback_error_count", labels={"error_type": type(error).__name__})
 
     def latest_usage(self) -> tuple[TokenUsageRecord | None, CostBreakdown | None]:
         """Return last token usage and cost summaries captured by callback lifecycle."""

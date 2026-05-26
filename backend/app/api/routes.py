@@ -3,9 +3,20 @@ import time
 from fastapi import APIRouter, Depends, Request, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
-from app.dependencies import get_llm_service
-from app.schemas.chat import ChatRequest, ChatResponse, CostPayload, LatencyPayload, TokenUsagePayload
+from app.core.config import get_settings
+from app.dependencies import get_cost_tracker, get_llm_service
+from app.schemas.chat import (
+    ChatRequest,
+    ChatResponse,
+    CostPayload,
+    CostReportPayload,
+    LangSmithStatusPayload,
+    LatencyPayload,
+    TokenUsagePayload,
+)
 from app.services.llm_service import LLMService
+from app.telemetry.base import CostTrackerPort
+from app.telemetry.cost_tracker import CostTracker
 
 router = APIRouter(tags=["system"])
 
@@ -32,6 +43,34 @@ async def health_check() -> dict[str, str]:
 async def metrics() -> Response:
     """Prometheus scrape endpoint placeholder for dashboard/alert integrations."""
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
+@router.get("/reports/cost", response_model=CostReportPayload, tags=["system"])
+async def cost_report(cost_tracker: CostTrackerPort = Depends(get_cost_tracker)) -> CostReportPayload:
+    """Aggregated in-process cost report for observability validation."""
+    if isinstance(cost_tracker, CostTracker):
+        report = cost_tracker.report()
+    else:
+        report = {
+            "total_requests": 0,
+            "total_cost_usd": 0.0,
+            "avg_cost_per_request_usd": 0.0,
+            "alert_threshold_usd": 0.0,
+            "by_model": {},
+            "recent_records": [],
+        }
+    return CostReportPayload(**report)
+
+
+@router.get("/observability/langsmith", response_model=LangSmithStatusPayload, tags=["system"])
+async def langsmith_status() -> LangSmithStatusPayload:
+    """LangSmith integration readiness status."""
+    settings = get_settings()
+    return LangSmithStatusPayload(
+        enabled=settings.langchain_tracing_v2,
+        api_key_configured=bool(settings.langchain_api_key),
+        project=settings.langchain_project,
+    )
 
 
 @router.post("/chat", response_model=ChatResponse, tags=["chat"])
