@@ -16,9 +16,12 @@ class ModelPricing:
 
 
 DEFAULT_MODEL_PRICING: dict[str, ModelPricing] = {
-    "gpt-4o-mini": ModelPricing(input_per_1k=0.00015, output_per_1k=0.0006),
-    "gpt-4o": ModelPricing(input_per_1k=0.005, output_per_1k=0.015),
-    "gpt-3.5-turbo": ModelPricing(input_per_1k=0.0005, output_per_1k=0.0015),
+    "llama3-8b-8192": ModelPricing(input_per_1k=0.00005, output_per_1k=0.00008),
+    "llama3-70b-8192": ModelPricing(input_per_1k=0.00059, output_per_1k=0.00079),
+    "mixtral-8x7b-32768": ModelPricing(input_per_1k=0.00024, output_per_1k=0.00024),
+    "gemma2-9b-it": ModelPricing(input_per_1k=0.00020, output_per_1k=0.00020),
+    "llama-3.1-8b-instant": ModelPricing(input_per_1k=0.00005, output_per_1k=0.00008),
+    "llama-3.3-70b-versatile": ModelPricing(input_per_1k=0.00059, output_per_1k=0.00079),
 }
 
 

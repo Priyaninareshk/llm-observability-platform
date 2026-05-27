@@ -59,7 +59,7 @@ class CostTracker(CostTrackerPort):
         """Calculate per-request cost and emit metrics/log events."""
         pricing = self._pricing_by_model.get(token_usage.model_name)
         if pricing is None:
-            pricing = self._pricing_by_model.get("gpt-4o-mini")
+            pricing = self._pricing_by_model.get("llama3-8b-8192")
             pricing_found = False
         else:
             pricing_found = True

@@ -33,7 +33,8 @@ class TraceStatsResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Routes
+# Routes — NOTE: specific paths MUST come before /{trace_id} to avoid
+#          FastAPI routing /search/hallucinated into the dynamic handler.
 # ---------------------------------------------------------------------------
 
 @router.get("", response_model=TraceListResponse, summary="List and filter traces")
@@ -114,13 +115,9 @@ async def get_stats():
     )
 
 
-@router.get("/{trace_id}", summary="Get a single trace by ID")
-async def get_trace(trace_id: str):
-    trace = trace_storage.get_trace(trace_id)
-    if not trace:
-        raise HTTPException(status_code=404, detail=f"Trace '{trace_id}' not found")
-    return trace
-
+# FIX: These specific sub-paths must be declared BEFORE /{trace_id}.
+# FastAPI matches routes in declaration order; having /{trace_id} first
+# causes /search/hallucinated to be treated as a trace_id lookup.
 
 @router.get("/search/hallucinated", summary="List hallucinated traces")
 async def list_hallucinated(
@@ -162,3 +159,12 @@ async def list_slow_traces(
         order_dir="DESC",
     )
     return {"count": len(traces), "threshold_ms": threshold_ms, "traces": traces}
+
+
+# Dynamic path last — avoids shadowing the static /search/* routes above.
+@router.get("/{trace_id}", summary="Get a single trace by ID")
+async def get_trace(trace_id: str):
+    trace = trace_storage.get_trace(trace_id)
+    if not trace:
+        raise HTTPException(status_code=404, detail=f"Trace '{trace_id}' not found")
+    return trace

@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     extended safely as new stories add storage, tracing exporters, and alerting.
     """
 
-    openai_api_key: str = ""
+    groq_api_key: str = ""
     database_url: str = "postgresql+psycopg://user:password@localhost:5432/llm_observability"
     otel_service_name: str = "llm-observability-backend"
     otel_exporter_otlp_endpoint: str = ""
@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     langchain_api_key: str = ""
     langchain_tracing_v2: bool = True
     langchain_project: str = "llm-observability-platform"
-    default_llm_model: str = "gpt-4o-mini"
+    default_llm_model: str = "llama3-8b-8192"
     cost_alert_threshold_usd: float = 0.05
     model_pricing_json: str = ""
     latency_warning_threshold_ms: float = 2000.0

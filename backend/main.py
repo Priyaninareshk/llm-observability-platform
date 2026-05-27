@@ -8,42 +8,59 @@ from app.core.logging import configure_logging
 from app.dependencies import get_latency_tracker
 from app.telemetry.instrumentation import initialize_telemetry, instrument_fastapi_app
 
-
 from monitoring.error_tracker import error_tracker
+from monitoring.monitoring_views import router as monitoring_router
 
 from hallucination.async_pipeline import hallucination_pipeline
 
 from storage.trace_storage import trace_storage
-
 from storage.trace_query_router import router as traces_router
-
 
 from alerting.alert_engine import alert_engine
 from alerting.alert_router import router as alerts_router
 from alerting.latency_cost_rules import register_all_rules
 from alerting.notification_channels import dispatcher
 
+from sla.sla_router import router as sla_router
+from root_cause.rca_router import router as rca_router
+from runbooks.runbook_router import router as runbooks_router
+from ab_testing.ab_router import router as ab_router
+
+settings = get_settings()
+configure_logging(settings.log_level)
+
+# App must be created BEFORE lifespan so middleware can be added at module load time.
+app = FastAPI(
+    title="LLM Observability Platform",
+    description=(
+        "Production-grade monitoring for LangChain/LangGraph workloads. "
+        "Includes alerts, SLA reporting, root-cause analysis, A/B testing, and runbooks."
+    ),
+    version="0.2.0",
+)
+
+# Instrument BEFORE app starts — middleware cannot be added after startup.
+instrument_fastapi_app(app, get_latency_tracker())
+
+# Core routes
+app.include_router(system_router)
+app.include_router(traces_router)
+app.include_router(alerts_router)
+
+# New feature routes
+app.include_router(monitoring_router)
+app.include_router(sla_router)
+app.include_router(rca_router)
+app.include_router(runbooks_router)
+app.include_router(ab_router)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan hook.
-
-    Startup:
-      - Configure logging and telemetry (existing)
-      - Start async hallucination pipeline workers (US-10)
-      - Register hallucination result callback → patches trace storage (US-11)
-      - Register all pre-built alert rules for latency, cost, errors, hallucination (US-15)
-
-    Shutdown:
-      - Drain hallucination queue gracefully (US-10)
-    """
-    settings = get_settings()
-    configure_logging(settings.log_level)
+    # initialize_telemetry sets up OTEL tracer/meter providers at startup.
     initialize_telemetry(app, settings, get_latency_tracker())
 
-
     await hallucination_pipeline.start()
-
 
     async def _patch_hallucination_result(result):
         trace_storage.update_hallucination(
@@ -53,7 +70,6 @@ async def lifespan(app: FastAPI):
         )
 
     hallucination_pipeline.register_callback(_patch_hallucination_result)
-
     register_all_rules(alert_engine)
 
     yield
@@ -61,20 +77,4 @@ async def lifespan(app: FastAPI):
     await hallucination_pipeline.shutdown()
 
 
-app = FastAPI(
-    title="LLM Observability Platform",
-    description="Production-grade monitoring foundation for LangChain/LangGraph workloads.",
-    version="0.1.0",
-    lifespan=lifespan,
-)
-
-
-app.include_router(system_router)
-
-
-app.include_router(traces_router)
-
-
-app.include_router(alerts_router)
-
-instrument_fastapi_app(app, get_latency_tracker())
+app.router.lifespan_context = lifespan

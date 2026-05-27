@@ -4,7 +4,7 @@ import time
 from dataclasses import dataclass
 
 from langchain_core.runnables import RunnableConfig
-from langchain_openai import ChatOpenAI
+from langchain_groq import ChatGroq
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
@@ -69,7 +69,7 @@ class LLMService:
 
             logger.info("chat.request.start", extra={"trace_id": current_trace_id()})
             try:
-                if not self._settings.openai_api_key:
+                if not self._settings.groq_api_key:
                     # Safe local fallback keeps endpoint operational in dev environments.
                     response_text = f"Mock response: {prompt}"
                     prompt_tokens = estimate_tokens(prompt)
@@ -86,9 +86,9 @@ class LLMService:
                     callback_latency_ms = 0.0
                     llm_latency_ms = 0.0
                 else:
-                    model = ChatOpenAI(
+                    model = ChatGroq(
                         model=self._settings.default_llm_model,
-                        api_key=self._settings.openai_api_key,
+                        api_key=self._settings.groq_api_key,
                         temperature=0,
                     )
                     result = await model.ainvoke(prompt, config=RunnableConfig(callbacks=[callback]))

@@ -101,3 +101,47 @@ Example latency log:
   "latency_middleware_ms": 13.4
 }
 ```
+
+---
+
+## Streamlit Frontend
+
+A full observability dashboard built with Streamlit.
+
+### Pages
+
+| Page | Description |
+|---|---|
+| 📊 Dashboard | All-time stats, alert rules, error-rate chart, faithfulness gauge |
+| 📡 Live Monitor | Real-time 5-min snapshot: requests, latency, cost, hallucinations |
+| 📈 Historical Trends | Hourly charts for requests, errors, latency, cost, hallucinations |
+| 🔍 Trace Explorer | Filterable table + detail view for every stored trace |
+| 🧪 A/B Testing | Run parallel model comparisons and view experiment summaries |
+| 📋 SLA Report | Compliance table against configured SLA targets |
+| 📚 Runbooks | Browse operational runbooks by severity and category |
+| 💬 Chat Playground | Send prompts to the backend with full observability metadata |
+
+### Running
+
+```bash
+# 1. Install frontend deps
+pip install -r frontend/requirements.txt
+
+# 2. Run (assumes backend is on localhost:8000)
+streamlit run frontend/app.py
+
+# 3. Override backend URL
+BACKEND_URL=http://my-backend:8000 streamlit run frontend/app.py
+```
+
+---
+
+## Bug Fixes Applied
+
+| # | File | Bug | Fix |
+|---|---|---|---|
+| 1 | `storage/trace_query_router.py` | `/search/hallucinated`, `/search/errors`, `/search/slow` were declared **after** `/{trace_id}`, so FastAPI matched them as trace-ID lookups and returned 404 | Moved all `/search/*` routes before `/{trace_id}` |
+| 2 | `backend/requirements.txt` | `transformers` and `torch` were missing; the `NLIFaithfulnessScorer` imports them at runtime — their absence silently degraded hallucination scoring to the heuristic fallback with no install guidance | Added `transformers>=4.40.0` and `torch>=2.2.0` |
+| 3 | `storage/trace_storage.py` | `count_traces()` fetched up to 10 000 rows into memory just to call `len()` | Replaced with a single `SELECT COUNT(*)` SQL query |
+| 4 | `main.py` | `instrument_fastapi_app()` was called at module level **after** `app` creation but **before** `initialize_telemetry()` ran inside the lifespan, so FastAPI instrumentation attached before the OTEL providers were initialised | Moved both calls into lifespan, in correct order |
+| 5 | `.env.example` | Only had a PostgreSQL `DATABASE_URL`; trace storage defaults to SQLite, confusing local dev setup | Added SQLite default with PostgreSQL as a commented option; documented all env vars |

@@ -264,8 +264,45 @@ class TraceStorage:
         return [dict(r) for r in rows]
 
     def count_traces(self, filters: Optional[Dict[str, Any]] = None) -> int:
-        rows = self.list_traces(limit=10_000, filters=filters)
-        return len(rows)
+        """Return total count matching filters using a SQL COUNT (no row loading)."""
+        where_clauses, params = [], []
+        filters = filters or {}
+
+        for col in ("model_name", "error_type", "faithfulness_label", "endpoint"):
+            if col in filters:
+                where_clauses.append(f"{col} = ?")
+                params.append(filters[col])
+
+        if "min_latency_ms" in filters:
+            where_clauses.append("latency_total_ms >= ?")
+            params.append(filters["min_latency_ms"])
+        if "max_latency_ms" in filters:
+            where_clauses.append("latency_total_ms <= ?")
+            params.append(filters["max_latency_ms"])
+        if "min_cost" in filters:
+            where_clauses.append("total_cost >= ?")
+            params.append(filters["min_cost"])
+        if "max_cost" in filters:
+            where_clauses.append("total_cost <= ?")
+            params.append(filters["max_cost"])
+        if "start_time" in filters:
+            where_clauses.append("created_at >= ?")
+            params.append(filters["start_time"])
+        if "end_time" in filters:
+            where_clauses.append("created_at <= ?")
+            params.append(filters["end_time"])
+        if "has_error" in filters and filters["has_error"]:
+            where_clauses.append("error_type IS NOT NULL")
+        if "search" in filters:
+            where_clauses.append("(prompt LIKE ? OR response LIKE ?)")
+            pattern = f"%{filters['search']}%"
+            params.extend([pattern, pattern])
+
+        where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+        sql = f"SELECT COUNT(*) FROM llm_traces {where_sql}"
+        with self._connect() as conn:
+            row = conn.execute(sql, params).fetchone()
+        return row[0] if row else 0
 
     def get_stats(self) -> Dict[str, Any]:
         with self._connect() as conn:
